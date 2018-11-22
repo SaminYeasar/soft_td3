@@ -191,7 +191,11 @@ class softTD3(object):
 			target_Q = torch.min(target_Q1, target_Q2)
 			
 			## target Q
-			target_Q = reward + (done * discount * target_Q - done * discount * target_value).detach()
+			if args.use_baseline_in_target:
+				target_Q = reward + (done * discount * target_Q - done * discount * target_value).detach()
+			else:
+				target_Q = reward + (done * discount * target_Q).detach()
+
 			# Get current Q estimates
 			current_Q1, current_Q2 = self.critic(state, action)
 			# to compute critic regularizer
@@ -207,8 +211,11 @@ class softTD3(object):
 			# Compute critic loss
 			critic_loss = F.mse_loss(current_Q1, target_Q) + F.mse_loss(current_Q2, target_Q) 
 			critic_regularizer = F.mse_loss(q_s, q_t)
-			total_critic_loss = critic_loss + args.trust_critic_weight * critic_regularizer
 
+			if args.use_critic_regularizer:
+				total_critic_loss = critic_loss + args.trust_critic_weight * critic_regularizer
+			else:
+				total_critic_loss = critic_loss
 
 
 			# for target V
@@ -237,13 +244,29 @@ class softTD3(object):
 				target_action_current_state, _, _, _, _ = self.actor_target(state)
 				target_action_current_state = target_action_current_state.detach()
 
-				### TODO : Check sign here : - \nabla_{\theta}[Q - V]
-				actor_loss = log_probs.mean() - self.critic.Q1(state, action_current_state).mean() - args.ent_weight * dist_entropy - self.value(state).mean()   
+				if args.use_log_prob_in_policy:
+					actor_loss = log_probs.mean() - self.critic.Q1(state, action_current_state).mean() - args.ent_weight * dist_entropy - self.value(state).mean() 
+				elif args.use_value_baseline:
+					actor_loss = - self.critic.Q1(state, action_current_state).mean() - args.ent_weight * dist_entropy - self.value(state).mean()
+				else:
+					actor_loss = - self.critic.Q1(state, action_current_state).mean() - args.ent_weight * dist_entropy				
+
 				regularization_loss = 0.001 * mean_actor.pow(2).mean() + 0.001 * log_std_actor.pow(2).mean()
-				
 				actor_trust_regularizer = F.mse_loss(action_current_state, target_action_current_state)
 
-				total_actor_loss = actor_loss + regularization_loss + args.trust_actor_weight * actor_trust_regularizer
+
+				if args.use_regularization_loss:
+					total_actor_loss = actor_loss + regularization_loss
+				elif args.use_actor_regularizer:
+					total_actor_loss = actor_loss + args.trust_actor_weight * actor_trust_regularizer
+				elif args.diversity_expl:
+					sampled_action = action
+					new_sampled_action, _, _, _, _ = self.actor(state)
+					actor_trust_regularizer = F.mse_loss(new_sampled_action, sample)
+					total_actor_loss = actor_loss - 0.01 * actor_trust_regularizer
+				else:
+					total_actor_loss = actor_loss 
+
 
 				# Optimize the actor 
 				self.actor_optimizer.zero_grad()

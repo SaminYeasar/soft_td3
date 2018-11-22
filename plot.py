@@ -39,9 +39,6 @@ def main_plot(list_of_data, smoothing_window=10,
         ax.fill_between(episodes,  data_mean + data_std, data_mean - data_std, alpha=0.3,
                         edgecolor=color, facecolor=color)
         plt.plot(episodes, data_mean, color=color, linewidth=1.5,  label=label)
-        plt.xlim((0, 40))
-        plt.ylim((50,100))
-
 
     ax.legend(loc='lower right', prop={'size' : 26})
     ax.set_xlabel(x_label,**axis_font)

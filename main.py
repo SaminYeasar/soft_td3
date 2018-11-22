@@ -55,6 +55,15 @@ if __name__ == "__main__":
 
 	parser.add_argument("--trust_actor_weight", default=0.01, type=float)
 	parser.add_argument("--trust_critic_weight", default=0.01, type=float)
+	parser.add_argument("--diversity_expl", type=bool, default=False, help='whether to use diversity driven exploration')
+
+	parser.add_argument("--use_baseline_in_target", type=bool, default=False, help='use baseline in target')
+	parser.add_argument("--use_critic_regularizer", type=bool, default=False, help='use regularizer in critic')
+	parser.add_argument("--use_actor_regularizer", type=bool, default=False, help='use regularizer in actor')
+	parser.add_argument("--use_log_prob_in_policy", type=bool, default=False, help='use log prob in actor loss as in SAC')
+	parser.add_argument("--use_value_baseline", type=bool, default=False, help='use value function baseline in actor loss to reduce variance')
+	parser.add_argument("--use_regularization_loss", type=bool, default=False, help='use simple regularizion losses for mean and log std of policy')
+
 
 	args = parser.parse_args()
 

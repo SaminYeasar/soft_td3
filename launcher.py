@@ -35,10 +35,17 @@ parser.add_argument('--policy_freq', default=2, type=int)           # Frequency 
 parser.add_argument("--ent_weight", default=0.005, type=float)
 parser.add_argument('-g',  type=str, default='0', help=['specify GPU'])
 parser.add_argument('--folder', type=str, default="./results/")          # Folder to save results in
-
 parser.add_argument("--trust_actor_weight", default=0.01, type=float)
 parser.add_argument("--trust_critic_weight", default=0.01, type=float)
 
+
+parser.add_argument("--diversity_expl", type=bool, default=False, help='whether to use diversity driven exploration')
+parser.add_argument("--use_baseline_in_target", type=bool, default=False, help='use baseline in target')
+parser.add_argument("--use_critic_regularizer", type=bool, default=False, help='use regularizer in critic')
+parser.add_argument("--use_actor_regularizer", type=bool, default=False, help='use regularizer in actor')
+parser.add_argument("--use_log_prob_in_policy", type=bool, default=False, help='use log prob in actor loss as in SAC')
+parser.add_argument("--use_value_baseline", type=bool, default=False, help='use value function baseline in actor loss to reduce variance')
+parser.add_argument("--use_regularization_loss", type=bool, default=False, help='use simple regularizion losses for mean and log std of policy')
 
 
 locals().update(parser.parse_args().__dict__)    
@@ -68,6 +75,13 @@ folder = args.folder
 save_models = args.save_models
 trust_actor_weight = args.trust_actor_weight
 trust_critic_weight = args.trust_critic_weight
+diversity_expl = args.diversity_expl
+use_baseline_in_target = args.use_baseline_in_target
+use_critic_regularizer = args.use_critic_regularizer
+use_actor_regularizer = args.use_actor_regularizer
+use_log_prob_in_policy = args.use_log_prob_in_policy
+use_value_baseline = args.use_value_baseline
+use_regularization_loss = args.use_regularization_loss
 
 
 grid = [] 
@@ -88,6 +102,14 @@ grid += [['-ent_weight', [ent_weight]]]
 grid += [['-folder', [folder]]]
 grid += [['-trust_actor_weight', [trust_actor_weight]]]
 grid += [['-trust_critic_weight', [trust_critic_weight]]]
+grid += [['-diversity_expl', [diversity_expl]]]
+grid += [['-use_baseline_in_target', [use_baseline_in_target]]]
+grid += [['-use_critic_regularizer', [use_critic_regularizer]]]
+grid += [['-use_actor_regularizer', [use_actor_regularizer]]]
+grid += [['-use_log_prob_in_policy', [use_log_prob_in_policy]]]
+grid += [['-use_value_baseline', [use_value_baseline]]]
+grid += [['-use_regularization_loss', [use_regularization_loss]]]
+
 
 
 job_strs = []
