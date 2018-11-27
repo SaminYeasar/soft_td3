@@ -25,6 +25,7 @@ class SoftActor(nn.Module):
 
 		self.l1 = nn.Linear(state_dim, 400)
 		self.l2 = nn.Linear(400, 300)
+		self.l3 = nn.Linear(300, action_dim)
 
 		self.mean_linear = nn.Linear(300, action_dim)
 		self.log_std_linear = nn.Linear(300, action_dim)
@@ -37,6 +38,7 @@ class SoftActor(nn.Module):
 	def forward(self, x, reparam=True):
 		x = F.relu(self.l1(x))
 		x = F.relu(self.l2(x))
+		action = self.max_action * torch.tanh(self.l3(x))
 
 		mean = self.mean_linear(x)
 		log_std = self.log_std_linear(x)
@@ -49,9 +51,7 @@ class SoftActor(nn.Module):
 			x_t = normal.rsample()
 		else:
 			x_t = normal.sample()
-
-		action = self.max_action  * torch.tanh(x_t) 
-		##action = torch.tanh(x_t) 
+		# action = torch.tanh(x_t)
 
 		log_prob = normal.log_prob(x_t)
 
@@ -64,6 +64,11 @@ class SoftActor(nn.Module):
 		return action, dist_entropy, mean, log_std, log_prob
 
 
+# Initialize QNetwork and Value Network weights
+def weights_init_vf(m):
+    classname = m.__class__.__name__
+    if classname.find('Linear') != -1:
+        torch.nn.init.xavier_normal_(m.weight)
 
 
 class Critic(nn.Module):
@@ -80,6 +85,7 @@ class Critic(nn.Module):
 		self.l5 = nn.Linear(400, 300)
 		self.l6 = nn.Linear(300, 1)
 
+		self.apply(weights_init_vf)
 
 	def forward(self, x, u):
 		xu = torch.cat([x, u], 1)
@@ -104,18 +110,14 @@ class Critic(nn.Module):
 
 
 
-# Initialize QNetwork and Value Network weights
-def weights_init_vf(m):
-    classname = m.__class__.__name__
-    if classname.find('Linear') != -1:
-        torch.nn.init.xavier_normal_(m.weight)
+
 
 
 class ValueNetwork(nn.Module):
     def __init__(self, state_dim):
         super(ValueNetwork, self).__init__()
 
-        hidden_dim = 400
+        hidden_dim = 300
         self.linear1 = nn.Linear(state_dim, hidden_dim)
         self.linear2 = nn.Linear(hidden_dim, hidden_dim)
         self.linear3 = nn.Linear(hidden_dim, 1)
@@ -155,6 +157,7 @@ class softTD3(object):
 	def select_action(self, state):
 		state = torch.FloatTensor(state.reshape(1, -1)).to(device)
 		action, _, _, _, _ = self.actor(state)
+		# action = torch.tanh(action)
 		action = action.cpu().data.numpy().flatten()
 
 		return action
