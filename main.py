@@ -156,8 +156,13 @@ if __name__ == "__main__":
 			action = env.action_space.sample()
 		else:
 			action = policy.select_action(np.array(obs))
-			if args.expl_noise != 0: 
+
+			if args.policy_name=="softTD3":
+				action = (action).clip(env.action_space.low, env.action_space.high)
+			else:
 				action = (action + np.random.normal(0, args.expl_noise, size=env.action_space.shape[0])).clip(env.action_space.low, env.action_space.high)
+			# if args.expl_noise != 0: 
+			# 	action = (action + np.random.normal(0, args.expl_noise, size=env.action_space.shape[0])).clip(env.action_space.low, env.action_space.high)
 
 		# Perform action
 		new_obs, reward, done, _ = env.step(action) 
