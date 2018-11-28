@@ -156,7 +156,6 @@ if __name__ == "__main__":
 			action = env.action_space.sample()
 		else:
 			action = policy.select_action(np.array(obs))
-
 			if args.policy_name=="softTD3":
 				action = (action).clip(env.action_space.low, env.action_space.high)
 			else:

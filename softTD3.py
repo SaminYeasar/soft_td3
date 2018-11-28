@@ -19,6 +19,13 @@ LOG_SIG_MIN = -20
 epsilon=1e-6
 
 
+"""
+IF STILL DOESN"T WORK - REMOVE THE WEIGHT NORMALIZATIONS?
+DOUBLE CHECK WITH THE TD3 CODE AGAIN AND SEE WHY IT DOESN"T WORK EXACTLY
+
+ALSO - REMOVE THE OU NOISE IN ACTIONS WHEN THEY ARE TAKEN FROM GAUSSIN POLICY
+OU NOISE ONLY WHEN A DETERMINISTIC ACTION IS TAKEN FROM THE ACTOR 
+"""
 class SoftActor(nn.Module):
 	def __init__(self, state_dim, action_dim, max_action):
 		super(SoftActor, self).__init__()
@@ -30,7 +37,7 @@ class SoftActor(nn.Module):
 		self.mean_linear = nn.Linear(300, action_dim)
 		self.log_std_linear = nn.Linear(300, action_dim)
 
-		self.apply(weights_init_policy)
+		# self.apply(weights_init_policy)
 		
 		self.max_action = max_action
 
@@ -85,7 +92,7 @@ class Critic(nn.Module):
 		self.l5 = nn.Linear(400, 300)
 		self.l6 = nn.Linear(300, 1)
 
-		self.apply(weights_init_vf)
+		# self.apply(weights_init_vf)
 
 	def forward(self, x, u):
 		xu = torch.cat([x, u], 1)
