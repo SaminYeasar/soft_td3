@@ -130,7 +130,6 @@ class Critic(nn.Module):
 
 	def Q1(self, x, u):
 		xu = torch.cat([x, u], 1)
-
 		x1 = F.relu(self.l1(xu))
 		x1 = F.relu(self.l2(x1))
 		x1 = self.l3(x1)
@@ -153,8 +152,6 @@ class Critic(nn.Module):
 		q_value = val + adv.mean(dim=1).view(-1,1)
 
 		return q_value 
-
-
 
 
 # class ValueNetwork(nn.Module):

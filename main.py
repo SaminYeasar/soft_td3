@@ -63,9 +63,7 @@ if __name__ == "__main__":
 	parser.add_argument("--use_log_prob_in_policy", type=bool, default=False, help='use log prob in actor loss as in SAC')
 	parser.add_argument("--use_value_baseline", type=bool, default=False, help='use value function baseline in actor loss to reduce variance')
 	parser.add_argument("--use_regularization_loss", type=bool, default=False, help='use simple regularizion losses for mean and log std of policy')
-
 	parser.add_argument("--use_dueling", type=bool, default=False, help='use dueling network architectures')
-
 	parser.add_argument("--use_logger", type=bool, default=False, help='whether to use logging or not')
 
 	args = parser.parse_args()
@@ -86,7 +84,6 @@ if __name__ == "__main__":
 
 	env = gym.make(args.env_name)
 
-	### TODO : Check this
 	# Set seeds
 	seed = np.random.randint(10)
 	env.seed(seed)
@@ -99,8 +96,6 @@ if __name__ == "__main__":
 		print ("Seed : %s" % (seed))
 		print ("---------------------------------------")
 
-
-	
 	state_dim = env.observation_space.shape[0]
 	action_dim = env.action_space.shape[0] 
 	max_action = float(env.action_space.high[0])
