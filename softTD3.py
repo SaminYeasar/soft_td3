@@ -103,7 +103,14 @@ class Critic(nn.Module):
 		x1 = F.relu(self.l1(xu))
 		x1 = F.relu(self.l2(x1))
 
-		x1 = self.l3(x1)
+		val = F.relu(self.fc3_1(x1))
+		val = self.fc4_1(val)
+
+		adv = F.relu(self.fc3_2(x1))
+		adv = F.relu(self.fc4_2(adv))
+		q_value = val + adv.mean(dim=1).view(-1,1)
+		# x1 = self.l3(x1)
+		x1 = q_value
 
 		x2 = F.relu(self.l4(xu))
 		x2 = F.relu(self.l5(x2))
@@ -117,12 +124,6 @@ class Critic(nn.Module):
 
 		x1 = F.relu(self.l1(xu))
 		x1 = F.relu(self.l2(x1))
-
-		val = F.relu(self.fc3_1(x1))
-		val = self.fc4_1(val)
-
-		adv = F.relu(self.fc3_2(x1))
-		adv = F.relu(self.fc4_2(adv))
 		x1 = self.l3(x1)
 
 		return x1 
@@ -140,8 +141,6 @@ class Critic(nn.Module):
 
 		adv = F.relu(self.fc3_2(x1))
 		adv = F.relu(self.fc4_2(adv))
-
-		# x1 = self.l3(x1)
 		q_value = val + adv.mean(dim=1).view(-1,1)
 
 		return q_value 
@@ -290,7 +289,7 @@ class softTD3(object):
 					actor_loss = - self.critic.Q1(state, action_current_state).mean() - args.ent_weight * dist_entropy				
 
 				# regularization_loss = 0.001 * mean_actor.pow(2).mean() + 0.001 * log_std_actor.pow(2).mean()
-				# actor_trust_regularizer = F.mse_loss(action_current_state, target_action_current_state)
+				actor_trust_regularizer = F.mse_loss(action_current_state, target_action_current_state)
 
 
 				# if args.use_regularization_loss:
@@ -298,7 +297,7 @@ class softTD3(object):
 
 				if args.use_actor_regularizer:
 					total_actor_loss = actor_loss + args.trust_actor_weight * actor_trust_regularizer
-					
+
 				elif args.diversity_expl:
 					sampled_action = action
 					new_sampled_action, _, _, _, _ = self.actor(state)
