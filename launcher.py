@@ -47,6 +47,7 @@ parser.add_argument("--use_log_prob_in_policy", type=bool, default=False, help='
 parser.add_argument("--use_value_baseline", type=bool, default=False, help='use value function baseline in actor loss to reduce variance')
 parser.add_argument("--use_regularization_loss", type=bool, default=False, help='use simple regularizion losses for mean and log std of policy')
 
+parser.add_argument("--use_dueling", type=bool, default=False, help='use dueling network architectures')
 
 locals().update(parser.parse_args().__dict__)    
 
@@ -82,6 +83,7 @@ use_actor_regularizer = args.use_actor_regularizer
 use_log_prob_in_policy = args.use_log_prob_in_policy
 use_value_baseline = args.use_value_baseline
 use_regularization_loss = args.use_regularization_loss
+use_dueling = args.use_dueling
 
 
 grid = [] 
@@ -109,7 +111,7 @@ grid += [['-use_actor_regularizer', [use_actor_regularizer]]]
 grid += [['-use_log_prob_in_policy', [use_log_prob_in_policy]]]
 grid += [['-use_value_baseline', [use_value_baseline]]]
 grid += [['-use_regularization_loss', [use_regularization_loss]]]
-
+grid += [['-use_dueling', [use_dueling]]]
 
 
 job_strs = []
