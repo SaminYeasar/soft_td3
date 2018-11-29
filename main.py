@@ -64,14 +64,19 @@ if __name__ == "__main__":
 	parser.add_argument("--use_value_baseline", type=bool, default=False, help='use value function baseline in actor loss to reduce variance')
 	parser.add_argument("--use_regularization_loss", type=bool, default=False, help='use simple regularizion losses for mean and log std of policy')
 
+	parser.add_argument("--use_dueling", type=bool, default=False, help='use dueling network architectures')
+
+	parser.add_argument("--use_logger", type=bool, default=False, help='whether to use logging or not')
 
 	args = parser.parse_args()
 
-	file_name = "%s_%s_%s" % (args.policy_name, args.env_name, str(args.seed))
+	if args.use_logger:
+		file_name = "%s_%s_%s" % (args.policy_name, args.env_name, str(args.seed))
 
-	logger = Logger(experiment_name = args.policy_name, environment_name = args.env_name, folder = args.folder)
-	logger.save_args(args)
-	print ('Saving to', logger.save_folder)
+		logger = Logger(experiment_name = args.policy_name, environment_name = args.env_name, folder = args.folder)
+		logger.save_args(args)
+
+		print ('Saving to', logger.save_folder)
 
 
 	if not os.path.exists("./results"):
@@ -88,10 +93,11 @@ if __name__ == "__main__":
 	torch.manual_seed(seed)
 	np.random.seed(seed)
 
-	print ("---------------------------------------")
-	print ("Settings: %s" % (file_name))
-	print ("Seed : %s" % (seed))
-	print ("---------------------------------------")
+	if args.use_logger:	
+		print ("---------------------------------------")
+		print ("Settings: %s" % (file_name))
+		print ("Seed : %s" % (seed))
+		print ("---------------------------------------")
 
 
 	
@@ -135,18 +141,21 @@ if __name__ == "__main__":
 			if timesteps_since_eval >= args.eval_freq:
 				timesteps_since_eval %= args.eval_freq
 				evaluations.append(evaluate_policy(policy))
-				logger.record_reward(evaluations)
-				logger.save()
-				
-				if args.save_models: policy.save(file_name, directory="./pytorch_models")
-				np.save("./results/%s" % (file_name), evaluations) 
+				if args.use_logger:
+					logger.record_reward(evaluations)
+					logger.save()			
+					if args.save_models: policy.save(file_name, directory="./pytorch_models")
+					np.save("./results/%s" % (file_name), evaluations) 
 			
 			# Reset environment
 			obs = env.reset()
 			done = False
 			training_evaluations.append(episode_reward)
-			logger.training_record_reward(training_evaluations)
-			logger.save_2()
+
+			if args.use_logger:
+				logger.training_record_reward(training_evaluations)
+				logger.save_2()
+				
 			episode_reward = 0
 			episode_timesteps = 0
 			episode_num += 1 
@@ -160,8 +169,6 @@ if __name__ == "__main__":
 				action = (action).clip(env.action_space.low, env.action_space.high)
 			else:
 				action = (action + np.random.normal(0, args.expl_noise, size=env.action_space.shape[0])).clip(env.action_space.low, env.action_space.high)
-			# if args.expl_noise != 0: 
-			# 	action = (action + np.random.normal(0, args.expl_noise, size=env.action_space.shape[0])).clip(env.action_space.low, env.action_space.high)
 
 		# Perform action
 		new_obs, reward, done, _ = env.step(action) 
@@ -179,12 +186,12 @@ if __name__ == "__main__":
 		
 	# Final evaluation 
 	evaluations.append(evaluate_policy(policy))
-	logger.record_reward(evaluations)
-
 	training_evaluations.append(episode_reward)
-	logger.training_record_reward(training_evaluations)
 
-	logger.save()
-	logger.save_2()
-	if args.save_models: policy.save("%s" % (file_name), directory="./pytorch_models")
-	np.save("./results/%s" % (file_name), evaluations)  
+	if args.use_logger:
+		logger.record_reward(evaluations)
+		logger.training_record_reward(training_evaluations)
+		logger.save()
+		logger.save_2()
+		if args.save_models: policy.save("%s" % (file_name), directory="./pytorch_models")
+		np.save("./results/%s" % (file_name), evaluations)  

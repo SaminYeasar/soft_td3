@@ -19,13 +19,6 @@ LOG_SIG_MIN = -20
 epsilon=1e-6
 
 
-"""
-IF STILL DOESN"T WORK - REMOVE THE WEIGHT NORMALIZATIONS?
-DOUBLE CHECK WITH THE TD3 CODE AGAIN AND SEE WHY IT DOESN"T WORK EXACTLY
-
-ALSO - REMOVE THE OU NOISE IN ACTIONS WHEN THEY ARE TAKEN FROM GAUSSIN POLICY
-OU NOISE ONLY WHEN A DETERMINISTIC ACTION IS TAKEN FROM THE ACTOR 
-"""
 class SoftActor(nn.Module):
 	def __init__(self, state_dim, action_dim, max_action):
 		super(SoftActor, self).__init__()
@@ -58,7 +51,6 @@ class SoftActor(nn.Module):
 			x_t = normal.rsample()
 		else:
 			x_t = normal.sample()
-		# action = torch.tanh(x_t)
 
 		log_prob = normal.log_prob(x_t)
 
@@ -78,6 +70,9 @@ def weights_init_vf(m):
         torch.nn.init.xavier_normal_(m.weight)
 
 
+"""
+Adding dueling networks here
+"""
 class Critic(nn.Module):
 	def __init__(self, state_dim, action_dim):
 		super(Critic, self).__init__()
@@ -86,6 +81,14 @@ class Critic(nn.Module):
 		self.l1 = nn.Linear(state_dim + action_dim, 400)
 		self.l2 = nn.Linear(400, 300)
 		self.l3 = nn.Linear(300, 1)
+
+		## value function layers
+		self.fc3_1 = nn.Linear(300, 300)
+		self.fc4_1 = nn.Linear(300, 1)
+
+		## layers for the advantage function
+		self.fc3_2 = nn.Linear(300, 300)
+		self.fc4_2 = nn.Linear(300, action_dim)
 
 		# Q2 architecture
 		self.l4 = nn.Linear(state_dim + action_dim, 400)
@@ -99,11 +102,13 @@ class Critic(nn.Module):
 
 		x1 = F.relu(self.l1(xu))
 		x1 = F.relu(self.l2(x1))
+
 		x1 = self.l3(x1)
 
 		x2 = F.relu(self.l4(xu))
 		x2 = F.relu(self.l5(x2))
 		x2 = self.l6(x2)
+
 		return x1, x2
 
 
@@ -112,30 +117,54 @@ class Critic(nn.Module):
 
 		x1 = F.relu(self.l1(xu))
 		x1 = F.relu(self.l2(x1))
+
+		val = F.relu(self.fc3_1(x1))
+		val = self.fc4_1(val)
+
+		adv = F.relu(self.fc3_2(x1))
+		adv = F.relu(self.fc4_2(adv))
 		x1 = self.l3(x1)
+
 		return x1 
 
 
 
+	def duelingQ(self, x, u):
+		xu = torch.cat([x, u], 1)
+
+		x1 = F.relu(self.l1(xu))
+		x1 = F.relu(self.l2(x1))
+
+		val = F.relu(self.fc3_1(x1))
+		val = self.fc4_1(val)
+
+		adv = F.relu(self.fc3_2(x1))
+		adv = F.relu(self.fc4_2(adv))
+
+		# x1 = self.l3(x1)
+		q_value = val + adv.mean(dim=1).view(-1,1)
+
+		return q_value 
 
 
 
-class ValueNetwork(nn.Module):
-    def __init__(self, state_dim):
-        super(ValueNetwork, self).__init__()
 
-        hidden_dim = 300
-        self.linear1 = nn.Linear(state_dim, hidden_dim)
-        self.linear2 = nn.Linear(hidden_dim, hidden_dim)
-        self.linear3 = nn.Linear(hidden_dim, 1)
+# class ValueNetwork(nn.Module):
+#     def __init__(self, state_dim):
+#         super(ValueNetwork, self).__init__()
 
-        self.apply(weights_init_vf)
+#         hidden_dim = 300
+#         self.linear1 = nn.Linear(state_dim, hidden_dim)
+#         self.linear2 = nn.Linear(hidden_dim, hidden_dim)
+#         self.linear3 = nn.Linear(hidden_dim, 1)
 
-    def forward(self, state):
-        x = F.relu(self.linear1(state))
-        x = F.relu(self.linear2(x))
-        x = self.linear3(x)
-        return x
+#         self.apply(weights_init_vf)
+
+#     def forward(self, state):
+#         x = F.relu(self.linear1(state))
+#         x = F.relu(self.linear2(x))
+#         x = self.linear3(x)
+#         return x
 
 
 
@@ -153,10 +182,10 @@ class softTD3(object):
 		self.critic_optimizer = torch.optim.Adam(self.critic.parameters())		
 
 
-		self.value = ValueNetwork(state_dim).to(device)
-		self.value_target = ValueNetwork(state_dim).to(device)
-		self.value_target.load_state_dict(self.value.state_dict())
-		self.value_optimizer = torch.optim.Adam(self.value.parameters())
+		# self.value = ValueNetwork(state_dim).to(device)
+		# self.value_target = ValueNetwork(state_dim).to(device)
+		# self.value_target.load_state_dict(self.value.state_dict())
+		# self.value_optimizer = torch.optim.Adam(self.value.parameters())
 
 		self.max_action = max_action
 
@@ -193,21 +222,19 @@ class softTD3(object):
 			action_current_state, dist_entropy, mean_actor, log_std_actor, log_probs = self.actor(state)
 
 			# Compute the value V
-			expected_value = self.value(state)
-			target_value = self.value_target(next_state)
+			# expected_value = self.value(state)
+			# target_value = self.value_target(next_state)
 
 			# Compute the target Q value
 			target_Q1, target_Q2 = self.critic_target(next_state, next_action)
 			target_Q = torch.min(target_Q1, target_Q2)
 			
-			## target Q
-			if args.use_baseline_in_target:
-				target_Q = reward + (done * discount * target_Q - done * discount * target_value).detach()
-			else:
-				target_Q = reward + (done * discount * target_Q).detach()
+			target_Q = reward + (done * discount * target_Q).detach()
 
 			# Get current Q estimates
 			current_Q1, current_Q2 = self.critic(state, action)
+
+
 			# to compute critic regularizer
 			a_target, _, _, _, _ = self.actor_target(state)
 			q1, q2 = self.critic_target(state, a_target)
@@ -234,7 +261,7 @@ class softTD3(object):
 			next_expected_value = expected_q_value - log_probs
 
 			# Compute the value loss
-			value_loss = F.mse_loss(expected_value, next_expected_value.detach())
+			# value_loss = F.mse_loss(expected_value, next_expected_value.detach())
 
 
 			# Optimize the critic
@@ -243,9 +270,9 @@ class softTD3(object):
 			self.critic_optimizer.step()
 
 			# Optimize the value 
-			self.value_optimizer.zero_grad()
-			value_loss.backward()
-			self.value_optimizer.step()
+			# self.value_optimizer.zero_grad()
+			# value_loss.backward()
+			# self.value_optimizer.step()
 
 			# Delayed policy updates
 			if it % policy_freq == 0:
@@ -254,26 +281,30 @@ class softTD3(object):
 				target_action_current_state, _, _, _, _ = self.actor_target(state)
 				target_action_current_state = target_action_current_state.detach()
 
-				if args.use_log_prob_in_policy:
-					actor_loss = log_probs.mean() - self.critic.Q1(state, action_current_state).mean() - args.ent_weight * dist_entropy - self.value(state).mean() 
-				elif args.use_value_baseline:
-					actor_loss = - self.critic.Q1(state, action_current_state).mean() - args.ent_weight * dist_entropy - self.value(state).mean()
+				# if args.use_value_baseline:
+				# 	actor_loss = - self.critic.Q1(state, action_current_state).mean() - args.ent_weight * dist_entropy - self.value(state).mean()
+				
+				if args.use_dueling:
+					actor_loss = - self.critic.duelingQ(state, action_current_state).mean() - args.ent_weight * dist_entropy
 				else:
 					actor_loss = - self.critic.Q1(state, action_current_state).mean() - args.ent_weight * dist_entropy				
 
-				regularization_loss = 0.001 * mean_actor.pow(2).mean() + 0.001 * log_std_actor.pow(2).mean()
-				actor_trust_regularizer = F.mse_loss(action_current_state, target_action_current_state)
+				# regularization_loss = 0.001 * mean_actor.pow(2).mean() + 0.001 * log_std_actor.pow(2).mean()
+				# actor_trust_regularizer = F.mse_loss(action_current_state, target_action_current_state)
 
 
-				if args.use_regularization_loss:
-					total_actor_loss = actor_loss + regularization_loss
-				elif args.use_actor_regularizer:
+				# if args.use_regularization_loss:
+				# 	total_actor_loss = actor_loss + regularization_loss
+
+				if args.use_actor_regularizer:
 					total_actor_loss = actor_loss + args.trust_actor_weight * actor_trust_regularizer
+					
 				elif args.diversity_expl:
 					sampled_action = action
 					new_sampled_action, _, _, _, _ = self.actor(state)
 					actor_trust_regularizer = F.mse_loss(new_sampled_action, sample)
 					total_actor_loss = actor_loss - 0.01 * actor_trust_regularizer
+
 				else:
 					total_actor_loss = actor_loss 
 
@@ -290,8 +321,8 @@ class softTD3(object):
 				for param, target_param in zip(self.actor.parameters(), self.actor_target.parameters()):
 					target_param.data.copy_(tau * param.data + (1 - tau) * target_param.data)
 
-				for param, target_param in zip(self.value.parameters(), self.value_target.parameters()):
-					target_param.data.copy_(tau * param.data + (1 - tau) * target_param.data)
+				# for param, target_param in zip(self.value.parameters(), self.value_target.parameters()):
+				# 	target_param.data.copy_(tau * param.data + (1 - tau) * target_param.data)
 
 
 
