@@ -114,7 +114,16 @@ class Critic(nn.Module):
 
 		x2 = F.relu(self.l4(xu))
 		x2 = F.relu(self.l5(x2))
-		x2 = self.l6(x2)
+
+		val2 = F.relu(self.fc3_1(x2))
+		val2 = self.fc4_1(val2)
+
+		adv2 = F.relu(self.fc3_2(x2))
+		adv2 = F.relu(self.fc4_2(adv2))
+		q_value2 = val2 + adv2.mean(dim=1).view(-1,1)
+
+		# x2 = self.l6(x2)
+		x2 = q_value2
 
 		return x1, x2
 
