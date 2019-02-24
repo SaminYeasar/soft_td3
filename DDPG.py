@@ -129,13 +129,13 @@ class DDPG(object):
 			reward = torch.FloatTensor(r).to(device)
 
 			if doubly_robust == True:
-				print("Using doubly robust estimator")
+				#print("Using doubly robust estimator")
 				""" Samin : compute r_hat"""
 				r_hat = self.compute_r_hat(state, action)
 				r_hat_loss = F.mse_loss(r_hat, reward)
 				# Optimize r_hat
 				self.r_hat_optimizer.zero_grad()
-				r_hat_loss.backward()
+				r_hat_loss.backward(retain_graph=True)  # need to be sure why it' necessary to retain the graph here
 				self.r_hat_optimizer.step()
 				# Compute Q hat
 				"""using the critic network to compute Q_hat
