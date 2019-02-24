@@ -36,8 +36,8 @@ def evaluate_policy(policy, eval_episodes=10):
 if __name__ == "__main__":
 	
 	parser = argparse.ArgumentParser()
-	parser.add_argument("--policy_name", default="softTD3")					# Policy name
-	parser.add_argument("--env_name", default="HalfCheetah-v1")			# OpenAI gym environment name
+	parser.add_argument("--policy_name", default="DDPG")					# Policy name
+	parser.add_argument("--env_name", default="HalfCheetah-v2")			# OpenAI gym environment name
 	parser.add_argument("--seed", default=0, type=int)					# Sets Gym, PyTorch and Numpy seeds
 	parser.add_argument("--start_timesteps", default=1e4, type=int)		# How many time steps purely random policy is run for
 	parser.add_argument("--eval_freq", default=5e3, type=float)			# How often (time steps) we evaluate
@@ -65,7 +65,7 @@ if __name__ == "__main__":
 	parser.add_argument("--use_regularization_loss", type=bool, default=False, help='use simple regularizion losses for mean and log std of policy')
 	parser.add_argument("--use_dueling", type=bool, default=False, help='use dueling network architectures')
 	parser.add_argument("--use_logger", type=bool, default=False, help='whether to use logging or not')
-
+	parser.add_argument("--use_DR", default=False, type=bool, help='Doubly Robust Estimator')
 	args = parser.parse_args()
 
 	if args.use_logger:
@@ -129,7 +129,7 @@ if __name__ == "__main__":
 				elif args.policy_name == "softTD3":
 					policy.train(args, replay_buffer, episode_timesteps, args.batch_size, args.discount, args.tau, args.policy_noise, args.noise_clip, args.policy_freq)	
 				else: 
-					policy.train(replay_buffer, episode_timesteps, args.batch_size, args.discount, args.tau)
+					policy.train(replay_buffer, episode_timesteps, args.batch_size, args.discount, args.tau, args.use_DR)
 			
 
 			# Evaluate episode
@@ -138,10 +138,11 @@ if __name__ == "__main__":
 				evaluations.append(evaluate_policy(policy))
 				if args.use_logger:
 					logger.record_reward(evaluations)
-					logger.save()			
-					if args.save_models: policy.save(file_name, directory="./pytorch_models")
-					np.save("./results/%s" % (file_name), evaluations) 
-			
+					logger.save()
+					"""Samin: changed the saving file to keep track"""
+					if args.save_models: policy.save(file_name, directory="./pytorch_models_{}".format(args.use_DR))
+					np.save("./results/{}_{}".format(file_name, args.use_DR), evaluations)
+
 			# Reset environment
 			obs = env.reset()
 			done = False
@@ -188,5 +189,7 @@ if __name__ == "__main__":
 		logger.training_record_reward(training_evaluations)
 		logger.save()
 		logger.save_2()
-		if args.save_models: policy.save("%s" % (file_name), directory="./pytorch_models")
-		np.save("./results/%s" % (file_name), evaluations)  
+		if args.save_models: policy.save(file_name, directory="./pytorch_models_{}".format(args.use_DR))
+		np.save("./results/{}_{}".format(file_name, args.use_DR), evaluations)
+		#if args.save_models: policy.save("%s" % (file_name), directory="./pytorch_models")
+		#np.save("./results/%s" % (file_name), evaluations)

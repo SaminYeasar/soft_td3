@@ -13,6 +13,10 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
 class Actor(nn.Module):
+	"""
+	INPUT: state,s_t
+	OUTPUT: action,a_
+	t"""
 	def __init__(self, state_dim, action_dim, max_action):
 		super(Actor, self).__init__()
 
@@ -31,6 +35,10 @@ class Actor(nn.Module):
 
 
 class Critic(nn.Module):
+	"""
+	INPUT: state,s_t and action, a_t
+	OUTPUT: Q(s_t,a_t)
+	"""
 	def __init__(self, state_dim, action_dim):
 		super(Critic, self).__init__()
 
@@ -45,6 +53,47 @@ class Critic(nn.Module):
 		x = self.l3(x)
 		return x 
 
+#############################################
+# Samin: Network to predict r_hat from buffer
+#############################################
+class compute_r_hat(nn.Module):
+	"""
+	INPUT: s,a from replay buffer
+	OUTPUT: r_hat
+	"""
+	def __init__(self, state_dim, action_dim):
+		super(compute_r_hat, self).__init__()
+
+		self.l1 = nn.Linear(state_dim+action_dim, 400)
+		self.l2 = nn.Linear(400, 300)
+		self.l3 = nn.Linear(300, 1)
+
+	"""add softmax at the output"""
+	def forward(self, state, action):
+		x = F.relu(self.l1(torch.cat([state, action], 1)))
+		x = F.relu(self.l2(x))
+		x = self.l3(x)
+		return x
+
+class compute_Q_hat(nn.Module):
+	"""
+	basically same architecture as Critic as both computes Q(s_t,a_t)
+	"""
+	def __init__(self, state_dim, action_dim):
+		super(compute_Q_hat, self).__init__()
+
+		self.l1 = nn.Linear(state_dim, 400)
+		self.l2 = nn.Linear(400 + action_dim, 300)
+		self.l3 = nn.Linear(300, 1)
+
+
+	def forward(self, x, u):
+		x = F.relu(self.l1(x))
+		x = F.relu(self.l2(torch.cat([x, u], 1)))
+		x = self.l3(x)
+		return x
+
+
 
 class DDPG(object):
 	def __init__(self, state_dim, action_dim, max_action):
@@ -58,13 +107,16 @@ class DDPG(object):
 		self.critic_target.load_state_dict(self.critic.state_dict())
 		self.critic_optimizer = torch.optim.Adam(self.critic.parameters(), weight_decay=1e-2)		
 
+		""" Samin: initialize network for r_hat """
+		self.compute_r_hat = compute_r_hat(state_dim, action_dim).to(device)
+		self.r_hat_optimizer = torch.optim.Adam(self.compute_r_hat.parameters(), lr=1e-4)
 
 	def select_action(self, state):
 		state = torch.FloatTensor(state.reshape(1, -1)).to(device)
 		return self.actor(state).cpu().data.numpy().flatten()
 
 
-	def train(self, replay_buffer, iterations, batch_size=64, discount=0.99, tau=0.001):
+	def train(self, replay_buffer, iterations, batch_size=64, discount=0.99, tau=0.001, doubly_robust=False):
 
 		for it in range(iterations):
 
@@ -76,10 +128,28 @@ class DDPG(object):
 			done = torch.FloatTensor(1 - d).to(device)
 			reward = torch.FloatTensor(r).to(device)
 
+			if doubly_robust == True:
+				print("Using doubly robust estimator")
+				""" Samin : compute r_hat"""
+				r_hat = self.compute_r_hat(state, action)
+				r_hat_loss = F.mse_loss(r_hat, reward)
+				# Optimize r_hat
+				self.r_hat_optimizer.zero_grad()
+				r_hat_loss.backward()
+				self.r_hat_optimizer.step()
+				# Compute Q hat
+				"""using the critic network to compute Q_hat
+				If I use different network then will have to compute loss for that network as well
+				"""
+				Q_hat = self.critic_target(next_state, self.actor_target(next_state))
+				Q_hat = r_hat + (done * discount * Q_hat).detach()
+			else:
+				Q_hat = 0
+
 			# Compute the target Q value
 			target_Q = self.critic_target(next_state, self.actor_target(next_state))
-			target_Q = reward + (done * discount * target_Q).detach()
-
+			# y_t = r_t + Q(s',a') + V_hat- Q_hat (ignored V_hat for the moment)
+			target_Q = reward + (done * discount * target_Q).detach() - Q_hat
 			# Get current Q estimate
 			current_Q = self.critic(state, action)
 
