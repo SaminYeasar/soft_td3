@@ -94,6 +94,23 @@ class Compute_Q_hat(nn.Module):
         x = self.l3(x)
         return x
 
+class Compute_V_hat(nn.Module):
+    """
+    basically same architecture as Critic as both computes Q(s_t,a_t)
+    """
+    def __init__(self, state_dim):
+        super(Compute_V_hat, self).__init__()
+
+        self.l1 = nn.Linear(state_dim, 400)
+        self.l2 = nn.Linear(400 , 300)
+        self.l3 = nn.Linear(300, 1)
+
+
+    def forward(self, x, u):
+        x = F.relu(self.l1(x))
+        x = F.relu(self.l2(x))
+        x = self.l3(x)
+        return x
 
 def init_weights(m):
     if isinstance(m, nn.Linear):
@@ -142,8 +159,8 @@ class DDPG(object):
         self.compute_r_hat = compute_r_hat(state_dim, action_dim).to(device)
         self.r_hat_optimizer = torch.optim.Adam(self.compute_r_hat.parameters(), lr=1e-4)
 
-        self.V_hat_network = ActorCritic(state_dim, action_dim).to(device)
-        self.V_hat_target_network = ActorCritic(state_dim, action_dim).to(device)
+        self.V_hat_network = Compute_V_hat(state_dim).to(device)
+        self.V_hat_target_network = Compute_V_hat(state_dim).to(device)
         self.V_hat_target_network.load_state_dict(self.V_hat_network.state_dict())
         self.V_hat_network_optimizer = torch.optim.Adam(self.V_hat_network.parameters(), weight_decay=1e-2)
 
@@ -199,10 +216,10 @@ class DDPG(object):
                 #_, next_value = V_hat_network(next_state)
                 #returns = compute_gae(next_value, rewards, masks, values)
 
-                _, V_hat_target = self.V_hat_target_network(next_state)
+                V_hat_target = self.V_hat_target_network(next_state, self.actor_target(next_state))
                 V_hat_target = r_hat + (done * discount * V_hat_target).detach()
-                _, V_hat = self.V_hat_network(state)
-                # Compute Q_hat loss
+                V_hat = self.Q_hat_network(state, action)
+                # Compute V_hat loss
                 V_hat_loss = F.mse_loss(V_hat, V_hat_target)
 
                 # Optimize the Q_hat
