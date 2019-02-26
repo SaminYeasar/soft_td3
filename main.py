@@ -72,7 +72,7 @@ if __name__ == "__main__":
     if args.use_logger:
         file_name = "%s_%s_%s" % (args.policy_name, args.env_name, str(args.seed))
 
-        logger = Logger(experiment_name = args.policy_name, environment_name = args.env_name, folder = args.folder)
+        logger = Logger(experiment_name = args.policy_name, environment_name = args.env_name, folder = "./results/{}".format(args.use_DR))
         logger.save_args(args)
 
         print ('Saving to', logger.save_folder)
