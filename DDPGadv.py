@@ -140,22 +140,7 @@ class DDPG(object):
 
 
 
-    def compute_gae(self, next_value, rewards, masks, values, gamma=0.99, tau=0.95):
-            values = values + [next_value]
-            gae = 0
-            returns = []
-            for step in reversed(range(len(rewards))):
-                delta = rewards[step] + gamma * values[step + 1] * masks[step] - values[step]
-                gae = delta + gamma * tau * masks[step] * gae
-                returns.insert(0, gae + values[step])
-            return returns
-
-    def select_action(self, state):
-        state = torch.FloatTensor(state.reshape(1, -1)).to(device)
-        return self.actor(state).cpu().data.numpy().flatten()
-
-
-    def train(self, replay_buffer, iterations,total_timesteps, batch_size=64, discount=0.99, tau=0.001, doubly_robust=False):
+    def train(self, replay_buffer, iterations, total_timesteps, batch_size=64, discount=0.99, tau=0.001, doubly_robust=False):
 
         for it in range(iterations):
 
@@ -185,7 +170,7 @@ class DDPG(object):
                 #_, next_value = V_hat_network(next_state)
                 #returns = compute_gae(next_value, rewards, masks, values)
 
-                V_hat_target = self.V_hat_target_network(next_state, self.actor_target(next_state))
+                V_hat_target = self.V_hat_target_network(next_state)
                 V_hat_target = r_hat + (done * discount * V_hat_target).detach()
                 V_hat = self.V_hat_network(state)
                 # Compute V_hat loss
