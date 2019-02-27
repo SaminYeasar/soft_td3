@@ -66,22 +66,22 @@ if __name__ == "__main__":
     parser.add_argument("--use_regularization_loss", type=bool, default=False, help='use simple regularizion losses for mean and log std of policy')
     parser.add_argument("--use_dueling", type=bool, default=False, help='use dueling network architectures')
     parser.add_argument("--use_logger", type=bool, default=True, help='whether to use logging or not')
-    parser.add_argument("--use_DR", default=True, type=bool, help='Doubly Robust Estimator')
+    parser.add_argument("--use_DR", default=False, type=bool, help='Doubly Robust Estimator')
     args = parser.parse_args()
 
     if args.use_logger:
         file_name = "%s_%s_%s" % (args.policy_name, args.env_name, str(args.seed))
 
-        logger = Logger(experiment_name = args.policy_name, environment_name = args.env_name, folder = "./results/{}".format(args.use_DR))
+        logger = Logger(experiment_name = args.policy_name, environment_name = args.env_name, folder = "./results/DR_{}".format(args.use_DR))
         logger.save_args(args)
 
         print ('Saving to', logger.save_folder)
 
 
-    if not os.path.exists("./results/{}".format(args.use_DR)):
-        os.makedirs("./results/{}".format(args.use_DR))
-    if args.save_models and not os.path.exists("./pytorch_models_DR{}".format(args.use_DR)):
-        os.makedirs("./pytorch_models_DR{}".format(args.use_DR))
+    if not os.path.exists("./results/DR_{}".format(args.use_DR)):
+        os.makedirs("./results/DR_{}".format(args.use_DR))
+    #if args.save_models and not os.path.exists("./pytorch_models_DR{}".format(args.use_DR)):
+    #    os.makedirs("./pytorch_models_DR{}".format(args.use_DR))
 
     env = gym.make(args.env_name)
 
@@ -142,9 +142,10 @@ if __name__ == "__main__":
                     logger.record_reward(evaluations)
                     logger.save()
                     logger.save_critic_loss()
+                    if args.save_models: logger.save_policy(policy, file_name)
                     """Samin: changed the saving file to keep track"""
-                    if args.save_models: policy.save(file_name, directory="./pytorch_models_DR{}".format(args.use_DR))
-                    np.save("./results/{}_{}".format(file_name, args.use_DR), evaluations)
+                    #if args.save_models: policy.save(file_name, directory="./pytorch_models_DR{}".format(args.use_DR))
+                    #np.save("./results/{}_{}".format(file_name, args.use_DR), evaluations)
 
             # Reset environment
             obs = env.reset()
@@ -193,7 +194,8 @@ if __name__ == "__main__":
         logger.save()
         logger.save_2()
         logger.save_critic_loss()  # save the critic loss
-        if args.save_models: policy.save(file_name, directory="./pytorch_models_DR{}".format(args.use_DR))
-        np.save("./results/{}_{}".format(file_name, args.use_DR), evaluations)
+        if args.save_models: logger.save_policy(policy, file_name)
+        #if args.save_models: policy.save(file_name, directory="./pytorch_models_DR{}".format(args.use_DR))
+        #np.save("./results/{}_{}".format(file_name, args.use_DR), evaluations)
         #if args.save_models: policy.save("%s" % (file_name), directory="./pytorch_models")
         #np.save("./results/%s" % (file_name), evaluations)

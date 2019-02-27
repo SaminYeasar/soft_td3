@@ -62,6 +62,8 @@ class Logger(object):
       def save_critic_loss(self):
             np.save(os.path.join(self.save_folder, "critic_loss.npy"), self.returns_critic_loss)
 
+      def save_policy(self, policy, filename):
+            policy.save(filename, directory=self.save_folder)
       def save_args(self, args):
             """
             Save the command line arguments
