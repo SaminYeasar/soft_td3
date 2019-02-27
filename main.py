@@ -37,7 +37,7 @@ def evaluate_policy(policy, eval_episodes=10):
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("--policy_name", default="DDPGadv")					# Policy name
+    parser.add_argument("--policy_name", default="DDPG")					# Policy name
     parser.add_argument("--env_name", default="HalfCheetah-v2")			# OpenAI gym environment name
     parser.add_argument("--seed", default=0, type=int)					# Sets Gym, PyTorch and Numpy seeds
     parser.add_argument("--start_timesteps", default=1e4, type=int)		# How many time steps purely random policy is run for
@@ -66,7 +66,7 @@ if __name__ == "__main__":
     parser.add_argument("--use_regularization_loss", type=bool, default=False, help='use simple regularizion losses for mean and log std of policy')
     parser.add_argument("--use_dueling", type=bool, default=False, help='use dueling network architectures')
     parser.add_argument("--use_logger", type=bool, default=True, help='whether to use logging or not')
-    parser.add_argument("--use_DR", default=False, type=bool, help='Doubly Robust Estimator')
+    parser.add_argument("--use_DR", default=True, type=bool, help='Doubly Robust Estimator')
     args = parser.parse_args()
 
     if args.use_logger:
@@ -131,7 +131,7 @@ if __name__ == "__main__":
                 elif args.policy_name == "softTD3":
                     policy.train(args, replay_buffer, episode_timesteps, args.batch_size, args.discount, args.tau, args.policy_noise, args.noise_clip, args.policy_freq)
                 else:
-                    policy.train(replay_buffer, episode_timesteps,total_timesteps, args.batch_size, args.discount, args.tau, args.use_DR)
+                    policy.train(logger, replay_buffer, episode_timesteps, total_timesteps, args.batch_size, args.discount, args.tau, args.use_DR)
 
 
             # Evaluate episode
@@ -141,6 +141,7 @@ if __name__ == "__main__":
                 if args.use_logger:
                     logger.record_reward(evaluations)
                     logger.save()
+                    logger.save_critic_loss()
                     """Samin: changed the saving file to keep track"""
                     if args.save_models: policy.save(file_name, directory="./pytorch_models_DR{}".format(args.use_DR))
                     np.save("./results/{}_{}".format(file_name, args.use_DR), evaluations)
@@ -153,7 +154,7 @@ if __name__ == "__main__":
             if args.use_logger:
                 logger.training_record_reward(training_evaluations)
                 logger.save_2()
-
+                logger.save_critic_loss()
             episode_reward = 0
             episode_timesteps = 0
             episode_num += 1
@@ -191,6 +192,7 @@ if __name__ == "__main__":
         logger.training_record_reward(training_evaluations)
         logger.save()
         logger.save_2()
+        logger.save_critic_loss()  # save the critic loss
         if args.save_models: policy.save(file_name, directory="./pytorch_models_DR{}".format(args.use_DR))
         np.save("./results/{}_{}".format(file_name, args.use_DR), evaluations)
         #if args.save_models: policy.save("%s" % (file_name), directory="./pytorch_models")

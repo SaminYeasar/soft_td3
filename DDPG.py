@@ -116,17 +116,18 @@ class DDPG(object):
         self.Q_hat_target_network.load_state_dict(self.Q_hat_network.state_dict())
         self.Q_hat_network_optimizer = torch.optim.Adam(self.Q_hat_network.parameters(), lr=1e-4)
 
+
     def select_action(self, state):
         state = torch.FloatTensor(state.reshape(1, -1)).to(device)
         return self.actor(state).cpu().data.numpy().flatten()
 
 
-    def train(self, replay_buffer, iterations, total_timesteps, batch_size=64, discount=0.99, tau=0.001, doubly_robust=False):
+    def train(self, logger, replay_buffer, iterations, total_timesteps, batch_size=64, discount=0.99, tau=0.001, doubly_robust=False):
 
         for it in range(iterations):
 
             # Sample replay buffer
-            x, y, u, r, d = replay_buffer.sample(batch_size)
+            x, y, u, r, d= replay_buffer.sample(batch_size)
             state = torch.FloatTensor(x).to(device)
             action = torch.FloatTensor(u).to(device)
             next_state = torch.FloatTensor(y).to(device)
@@ -173,6 +174,8 @@ class DDPG(object):
 
             # Compute critic loss
             critic_loss = F.mse_loss(current_Q, target_Q)
+            # record logger
+            logger.record_critic_loss(critic_loss.detach())
 
             # Optimize the critic
             self.critic_optimizer.zero_grad()
