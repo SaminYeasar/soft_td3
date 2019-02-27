@@ -66,7 +66,7 @@ if __name__ == "__main__":
     parser.add_argument("--use_regularization_loss", type=bool, default=False, help='use simple regularizion losses for mean and log std of policy')
     parser.add_argument("--use_dueling", type=bool, default=False, help='use dueling network architectures')
     parser.add_argument("--use_logger", type=bool, default=True, help='whether to use logging or not')
-    parser.add_argument("--use_DR", default=True, type=bool, help='Doubly Robust Estimator')
+    parser.add_argument("--use_DR", default=False, type=bool, help='Doubly Robust Estimator')
     args = parser.parse_args()
 
     if args.use_logger:
