@@ -138,6 +138,9 @@ class DDPG(object):
         self.Q_hat_target_network.load_state_dict(self.Q_hat_network.state_dict())
         self.Q_hat_network_optimizer = torch.optim.Adam(self.Q_hat_network.parameters(), lr=1e-4)
 
+    def select_action(self, state):
+        state = torch.FloatTensor(state.reshape(1, -1)).to(device)
+        return self.actor(state).cpu().data.numpy().flatten()
 
 
     def train(self, replay_buffer, iterations, total_timesteps, batch_size=64, discount=0.99, tau=0.001, doubly_robust=False):
