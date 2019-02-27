@@ -141,7 +141,6 @@ if __name__ == "__main__":
                 if args.use_logger:
                     logger.record_reward(evaluations)
                     logger.save()
-                    logger.save_critic_loss()
                     if args.save_models: logger.save_policy(policy, file_name)
                     """Samin: changed the saving file to keep track"""
                     #if args.save_models: policy.save(file_name, directory="./pytorch_models_DR{}".format(args.use_DR))
@@ -155,7 +154,6 @@ if __name__ == "__main__":
             if args.use_logger:
                 logger.training_record_reward(training_evaluations)
                 logger.save_2()
-                logger.save_critic_loss()
             episode_reward = 0
             episode_timesteps = 0
             episode_num += 1
