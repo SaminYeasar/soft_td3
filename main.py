@@ -66,7 +66,7 @@ if __name__ == "__main__":
     parser.add_argument("--use_regularization_loss", type=bool, default=False, help='use simple regularizion losses for mean and log std of policy')
     parser.add_argument("--use_dueling", type=bool, default=False, help='use dueling network architectures')
     parser.add_argument("--use_logger", type=bool, default=True, help='whether to use logging or not')
-    parser.add_argument("--use_DR", default=False, type=bool, help='Doubly Robust Estimator')
+    parser.add_argument("--use_DR", default=True, type=bool, help='Doubly Robust Estimator')
     args = parser.parse_args()
 
     if args.use_logger:
@@ -78,8 +78,8 @@ if __name__ == "__main__":
         print ('Saving to', logger.save_folder)
 
 
-    if not os.path.exists("./results"):
-        os.makedirs("./results")
+    if not os.path.exists("./results/{}".format(args.use_DR)):
+        os.makedirs("./results/{}".format(args.use_DR))
     if args.save_models and not os.path.exists("./pytorch_models_DR{}".format(args.use_DR)):
         os.makedirs("./pytorch_models_DR{}".format(args.use_DR))
 
