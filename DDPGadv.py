@@ -102,46 +102,15 @@ class Compute_V_hat(nn.Module):
         super(Compute_V_hat, self).__init__()
 
         self.l1 = nn.Linear(state_dim, 400)
-        self.l2 = nn.Linear(400 , 300)
+        self.l2 = nn.Linear(400, 300)
         self.l3 = nn.Linear(300, 1)
 
 
-    def forward(self, x, u):
+    def forward(self, x):
         x = F.relu(self.l1(x))
         x = F.relu(self.l2(x))
         x = self.l3(x)
         return x
-
-def init_weights(m):
-    if isinstance(m, nn.Linear):
-        nn.init.normal_(m.weight, mean=0., std=0.1)
-        nn.init.constant_(m.bias, 0.1)
-
-class ActorCritic(nn.Module):
-    def __init__(self, state_dim, action_dim, hidden_size = 100, std=0.0):
-        super(ActorCritic, self).__init__()
-
-        self.critic = nn.Sequential(
-            nn.Linear(state_dim, hidden_size),
-            nn.ReLU(),
-            nn.Linear(hidden_size, 1)
-        )
-
-        self.actor = nn.Sequential(
-            nn.Linear(state_dim, hidden_size),
-            nn.ReLU(),
-            nn.Linear(hidden_size, action_dim),
-        )
-        self.log_std = nn.Parameter(torch.ones(1, action_dim) * std)
-
-        self.apply(init_weights)
-
-    def forward(self, x):
-        value = self.critic(x)
-        mu = self.actor(x)
-        std = self.log_std.exp().expand_as(mu)
-        dist = Normal(mu, std)
-        return dist, value
 
 class DDPG(object):
     def __init__(self, state_dim, action_dim, max_action):
@@ -162,7 +131,7 @@ class DDPG(object):
         self.V_hat_network = Compute_V_hat(state_dim).to(device)
         self.V_hat_target_network = Compute_V_hat(state_dim).to(device)
         self.V_hat_target_network.load_state_dict(self.V_hat_network.state_dict())
-        self.V_hat_network_optimizer = torch.optim.Adam(self.V_hat_network.parameters(), weight_decay=1e-2)
+        self.V_hat_network_optimizer = torch.optim.Adam(self.V_hat_network.parameters(), lr=1e-4)
 
         self.Q_hat_network = Compute_Q_hat(state_dim, action_dim).to(device)
         self.Q_hat_target_network = Compute_Q_hat(state_dim, action_dim).to(device)
@@ -218,7 +187,7 @@ class DDPG(object):
 
                 V_hat_target = self.V_hat_target_network(next_state, self.actor_target(next_state))
                 V_hat_target = r_hat + (done * discount * V_hat_target).detach()
-                V_hat = self.Q_hat_network(state, action)
+                V_hat = self.V_hat_network(state)
                 # Compute V_hat loss
                 V_hat_loss = F.mse_loss(V_hat, V_hat_target)
 
@@ -245,7 +214,7 @@ class DDPG(object):
                 # actions = torch.cat(actions)
                 # advantage = returns - values
 
-                advantage = V_hat - Q_hat
+                advantage = Q_hat - V_hat
             else:
                 advantage = 0
 
@@ -254,7 +223,11 @@ class DDPG(object):
             # Compute the target Q value
             target_Q = self.critic_target(next_state, self.actor_target(next_state))
             # y_t = r_t + Q(s',a') + V_hat- Q_hat (ignored V_hat for the moment)
-            target_Q = reward + (done * discount * target_Q).detach() - advantage
+
+            # if total_timesteps >= 20000:
+            #     print("stop")
+
+            target_Q = reward + (done * discount * target_Q).detach() + advantage
 
             # Compute critic loss
             critic_loss = F.mse_loss(current_Q, target_Q)
