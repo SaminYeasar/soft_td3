@@ -32,7 +32,7 @@ class ReplayBuffer(object):
 
 create_folder = lambda f: [ os.makedirs(f) if not os.path.exists(f) else False ]
 class Logger(object):
-      def __init__(self, experiment_name='', environment_name='', folder='./results' ):
+      def __init__(self, experiment_name='', environment_name='', folder='./results'):
             """
             Saves experimental metrics for use later.
             :param experiment_name: name of the experiment
@@ -51,7 +51,8 @@ class Logger(object):
             self.returns_train = reward_return
 
       def record_critic_loss(self, critic_loss):
-            self.returns_critic_loss.append(critic_loss)
+          self.returns_critic_loss.append(critic_loss)
+
 
       def save(self):
             np.save(os.path.join(self.save_folder, "returns_eval.npy"), self.returns_eval)
@@ -61,6 +62,8 @@ class Logger(object):
 
       def save_critic_loss(self):
             np.save(os.path.join(self.save_folder, "critic_loss.npy"), self.returns_critic_loss)
+
+
 
       def save_policy(self, policy, filename):
             policy.save(filename, directory=self.save_folder)

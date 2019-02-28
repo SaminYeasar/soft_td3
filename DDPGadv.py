@@ -112,7 +112,7 @@ class Compute_V_hat(nn.Module):
         x = self.l3(x)
         return x
 
-class DDPG(object):
+class DDPGadv(object):
     def __init__(self, state_dim, action_dim, max_action):
         self.actor = Actor(state_dim, action_dim, max_action).to(device)
         self.actor_target = Actor(state_dim, action_dim, max_action).to(device)
@@ -143,7 +143,7 @@ class DDPG(object):
         return self.actor(state).cpu().data.numpy().flatten()
 
 
-    def train(self, logger, replay_buffer, iterations, total_timesteps, batch_size=64, discount=0.99, tau=0.001, doubly_robust=False):
+    def train(self, logger, replay_buffer, iterations, total_timesteps, batch_size=64, discount=0.99, tau=0.001):
 
         for it in range(iterations):
 
@@ -155,66 +155,61 @@ class DDPG(object):
             done = torch.FloatTensor(1 - d).to(device)
             reward = torch.FloatTensor(r).to(device)
 
+            ################
+            # Compute r_hat
+            ################
+            #print("Using doubly robust estimator")
+            """ Samin : compute r_hat"""
+            r_hat = self.compute_r_hat(state, action)
+            r_hat_loss = F.mse_loss(r_hat, reward)
+            # Optimize r_hat
+            self.r_hat_optimizer.zero_grad()
+            r_hat_loss.backward(retain_graph=True)  # need to be sure why it' necessary to retain the graph here
+            self.r_hat_optimizer.step()
 
+            ################
+            # Compute V_hat
+            ################
+            V_hat_target = self.V_hat_target_network(next_state)
+            V_hat_target = r_hat + (done * discount * V_hat_target).detach()
+            V_hat = self.V_hat_network(state)
+            # Compute V_hat loss
+            V_hat_loss = F.mse_loss(V_hat, V_hat_target)
 
-            if doubly_robust == True:
-                #print("Using doubly robust estimator")
-                """ Samin : compute r_hat"""
-                r_hat = self.compute_r_hat(state, action)
-                r_hat_loss = F.mse_loss(r_hat, reward)
-                # Optimize r_hat
-                self.r_hat_optimizer.zero_grad()
-                r_hat_loss.backward(retain_graph=True)  # need to be sure why it' necessary to retain the graph here
-                self.r_hat_optimizer.step()
+            # Optimize the Q_hat
+            self.V_hat_network_optimizer.zero_grad()
+            V_hat_loss.backward(retain_graph=True)
+            self.V_hat_network_optimizer.step()
 
+            ################
+            # Compute Q_hat
+            ################
+            Q_hat_target = self.Q_hat_target_network(next_state, self.actor_target(next_state))
+            Q_hat_target = r_hat + (done * discount * Q_hat_target).detach()
+            Q_hat = self.Q_hat_network(state, action)
+            # Compute Q_hat loss
+            Q_hat_loss = F.mse_loss(Q_hat, Q_hat_target)
 
+            # Optimize the Q_hat
+            self.Q_hat_network_optimizer.zero_grad()
+            Q_hat_loss.backward(retain_graph=True)
+            self.Q_hat_network_optimizer.step()
 
-                #############################
-                #_, next_value = V_hat_network(next_state)
-                #returns = compute_gae(next_value, rewards, masks, values)
+            ###################
+            # get the advantage
+            ###################
+            advantage = Q_hat - V_hat
 
-                V_hat_target = self.V_hat_target_network(next_state)
-                V_hat_target = r_hat + (done * discount * V_hat_target).detach()
-                V_hat = self.V_hat_network(state)
-                # Compute V_hat loss
-                V_hat_loss = F.mse_loss(V_hat, V_hat_target)
-
-                # Optimize the Q_hat
-                self.V_hat_network_optimizer.zero_grad()
-                V_hat_loss.backward(retain_graph=True)
-                self.V_hat_network_optimizer.step()
-
-                Q_hat_target = self.Q_hat_target_network(next_state, self.actor_target(next_state))
-                Q_hat_target = r_hat + (done * discount * Q_hat_target).detach()
-                Q_hat = self.Q_hat_network(state, action)
-                # Compute Q_hat loss
-                Q_hat_loss = F.mse_loss(Q_hat, Q_hat_target)
-
-                # Optimize the Q_hat
-                self.Q_hat_network_optimizer.zero_grad()
-                Q_hat_loss.backward(retain_graph=True)
-                self.Q_hat_network_optimizer.step()
-
-                # returns = torch.cat(returns).detach()
-                # log_probs = torch.cat(log_probs).detach()
-                # values = torch.cat(values).detach()
-                # states = torch.cat(states)
-                # actions = torch.cat(actions)
-                # advantage = returns - values
-
-                advantage = Q_hat - V_hat
-            else:
-                advantage = 0
 
             # Get current Q estimate
             current_Q = self.critic(state, action)
             # Compute the target Q value
             target_Q = self.critic_target(next_state, self.actor_target(next_state))
-            # y_t = r_t + Q(s',a') + V_hat- Q_hat (ignored V_hat for the moment)
+
 
             # if total_timesteps >= 20000:
             #     print("stop")
-
+            """ equation: y_t = r_t + Q(s',a') +  Q_hat - V_hat """
             target_Q = reward + (done * discount * target_Q).detach() + advantage
 
             # Compute critic loss

@@ -16,40 +16,40 @@ def grid_search(args_vals):
         lists.append(ll)
     return ["".join(item) for item in itertools.product(*lists)]
 
-"""
-parser = argparse.ArgumentParser()
-parser.add_argument('--experiments', type=int, default=3)
-parser.add_argument('--policy_name', type=str, default="DDPG")          # Policy name
-parser.add_argument('--env_name', type=str, default="HalfCheetah-v1")         # OpenAI gym environment name
-parser.add_argument('--start_timesteps', default=10000, type=int)     # How many time steps purely random policy is run for
-parser.add_argument('--eval_freq', default=5e3, type=float)         # How often (time steps) we evaluate
-parser.add_argument('--max_timesteps', default=1e6, type=float)     # Max time steps to run environment for
-parser.add_argument('--save_models', default=True,type=bool)           # Whether or not models are saved
-parser.add_argument('--expl_noise', default=0.1, type=float)        # Std of Gaussian exploration noise
-parser.add_argument('--batch_size', default=100, type=int)          # Batch size for both actor and critic
-parser.add_argument('--discount', default=0.99, type=float)         # Discount factor
-parser.add_argument('--tau', default=0.005, type=float)             # Target network update rate
-parser.add_argument('--policy_noise', default=0.2, type=float)      # Noise added to target policy during critic update
-parser.add_argument('--noise_clip', default=0.5, type=float)        # Range to clip target policy noise
-parser.add_argument('--policy_freq', default=2, type=int)           # Frequency of delayed policy updates
-parser.add_argument("--ent_weight", default=0.005, type=float)
-parser.add_argument('-g',  type=str, default='0', help=['specify GPU'])
-parser.add_argument('--folder', type=str, default="./results/")          # Folder to save results in
-parser.add_argument("--trust_actor_weight", default=0.01, type=float)
-parser.add_argument("--trust_critic_weight", default=0.01, type=float)
 
+# parser = argparse.ArgumentParser()
+# parser.add_argument('--experiments', type=int, default=3)
+# parser.add_argument('--policy_name', type=str, default="DDPG")          # Policy name
+# parser.add_argument('--env_name', type=str, default="HalfCheetah-v1")         # OpenAI gym environment name
+# parser.add_argument('--start_timesteps', default=10000, type=int)     # How many time steps purely random policy is run for
+# parser.add_argument('--eval_freq', default=5e3, type=float)         # How often (time steps) we evaluate
+# parser.add_argument('--max_timesteps', default=1e6, type=float)     # Max time steps to run environment for
+# parser.add_argument('--save_models', default=True,type=bool)           # Whether or not models are saved
+# parser.add_argument('--expl_noise', default=0.1, type=float)        # Std of Gaussian exploration noise
+# parser.add_argument('--batch_size', default=100, type=int)          # Batch size for both actor and critic
+# parser.add_argument('--discount', default=0.99, type=float)         # Discount factor
+# parser.add_argument('--tau', default=0.005, type=float)             # Target network update rate
+# parser.add_argument('--policy_noise', default=0.2, type=float)      # Noise added to target policy during critic update
+# parser.add_argument('--noise_clip', default=0.5, type=float)        # Range to clip target policy noise
+# parser.add_argument('--policy_freq', default=2, type=int)           # Frequency of delayed policy updates
+# parser.add_argument("--ent_weight", default=0.005, type=float)
+# parser.add_argument('-g',  type=str, default='0', help=['specify GPU'])
+# parser.add_argument('--folder', type=str, default="./results/")          # Folder to save results in
+# parser.add_argument("--trust_actor_weight", default=0.01, type=float)
+# parser.add_argument("--trust_critic_weight", default=0.01, type=float)
+#
+#
+# parser.add_argument("--diversity_expl", type=bool, default=False, help='whether to use diversity driven exploration')
+# parser.add_argument("--use_baseline_in_target", type=bool, default=False, help='use baseline in target')
+# parser.add_argument("--use_critic_regularizer", type=bool, default=False, help='use regularizer in critic')
+# parser.add_argument("--use_actor_regularizer", type=bool, default=False, help='use regularizer in actor')
+# parser.add_argument("--use_log_prob_in_policy", type=bool, default=False, help='use log prob in actor loss as in SAC')
+# parser.add_argument("--use_value_baseline", type=bool, default=False, help='use value function baseline in actor loss to reduce variance')
+# parser.add_argument("--use_regularization_loss", type=bool, default=False, help='use simple regularizion losses for mean and log std of policy')
+#
+# parser.add_argument("--use_dueling", type=bool, default=False, help='use dueling network architectures')
+# parser.add_argument("--use_logger", type=bool, default=False, help='whether to use logging or not')
 
-parser.add_argument("--diversity_expl", type=bool, default=False, help='whether to use diversity driven exploration')
-parser.add_argument("--use_baseline_in_target", type=bool, default=False, help='use baseline in target')
-parser.add_argument("--use_critic_regularizer", type=bool, default=False, help='use regularizer in critic')
-parser.add_argument("--use_actor_regularizer", type=bool, default=False, help='use regularizer in actor')
-parser.add_argument("--use_log_prob_in_policy", type=bool, default=False, help='use log prob in actor loss as in SAC')
-parser.add_argument("--use_value_baseline", type=bool, default=False, help='use value function baseline in actor loss to reduce variance')
-parser.add_argument("--use_regularization_loss", type=bool, default=False, help='use simple regularizion losses for mean and log std of policy')
-
-parser.add_argument("--use_dueling", type=bool, default=False, help='use dueling network architectures')
-parser.add_argument("--use_logger", type=bool, default=False, help='whether to use logging or not')
-"""
 parser = argparse.ArgumentParser()
 parser.add_argument('--experiments', type=int, default=3)
 parser.add_argument("--policy_name", default="DDPG")					# Policy name
@@ -81,7 +81,7 @@ parser.add_argument("--use_value_baseline", type=bool, default=False, help='use 
 parser.add_argument("--use_regularization_loss", type=bool, default=False, help='use simple regularizion losses for mean and log std of policy')
 parser.add_argument("--use_dueling", type=bool, default=False, help='use dueling network architectures')
 parser.add_argument("--use_logger", type=bool, default=True, help='whether to use logging or not')
-parser.add_argument("--use_DR", default=False, type=bool, help='Doubly Robust Estimator')
+
 
 
 
@@ -123,7 +123,7 @@ use_value_baseline = args.use_value_baseline
 use_regularization_loss = args.use_regularization_loss
 use_dueling = args.use_dueling
 use_logger = args.use_logger
-use_DR = args.use_DR
+
 
 grid = [] 
 grid += [['-policy_name', [policy_name]]]
@@ -152,7 +152,7 @@ grid += [['-use_value_baseline', [use_value_baseline]]]
 grid += [['-use_regularization_loss', [use_regularization_loss]]]
 grid += [['-use_dueling', [use_dueling]]]
 grid += [['-use_logger', [use_logger]]]
-grid += [['-use_DR', [use_DR]]]
+
 
 
 job_strs = []

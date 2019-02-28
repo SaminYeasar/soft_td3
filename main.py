@@ -10,6 +10,7 @@ import OurDDPG
 import DDPG
 import softTD3
 import DDPGadv
+import DDPGq
 from utils import Logger
 from utils import create_folder
 
@@ -66,22 +67,19 @@ if __name__ == "__main__":
     parser.add_argument("--use_regularization_loss", type=bool, default=False, help='use simple regularizion losses for mean and log std of policy')
     parser.add_argument("--use_dueling", type=bool, default=False, help='use dueling network architectures')
     parser.add_argument("--use_logger", type=bool, default=True, help='whether to use logging or not')
-    parser.add_argument("--use_DR", default=False, type=bool, help='Doubly Robust Estimator')
     args = parser.parse_args()
 
     if args.use_logger:
         file_name = "%s_%s_%s" % (args.policy_name, args.env_name, str(args.seed))
 
-        logger = Logger(experiment_name = args.policy_name, environment_name = args.env_name, folder = "./results/DR_{}".format(args.use_DR))
+        logger = Logger(experiment_name = args.policy_name, environment_name = args.env_name, folder = "./results/")
         logger.save_args(args)
 
         print ('Saving to', logger.save_folder)
 
 
-    if not os.path.exists("./results/DR_{}".format(args.use_DR)):
-        os.makedirs("./results/DR_{}".format(args.use_DR))
-    #if args.save_models and not os.path.exists("./pytorch_models_DR{}".format(args.use_DR)):
-    #    os.makedirs("./pytorch_models_DR{}".format(args.use_DR))
+    if not os.path.exists("./results"):
+        os.makedirs("./results")
 
     env = gym.make(args.env_name)
 
@@ -106,7 +104,8 @@ if __name__ == "__main__":
     elif args.policy_name == "softTD3": policy = softTD3.softTD3(state_dim, action_dim, max_action)
     elif args.policy_name == "OurDDPG": policy = OurDDPG.DDPG(state_dim, action_dim, max_action)
     elif args.policy_name == "DDPG": policy = DDPG.DDPG(state_dim, action_dim, max_action)
-    elif args.policy_name == "DDPGadv": policy = DDPGadv.DDPG(state_dim, action_dim, max_action)
+    elif args.policy_name == "DDPGq": policy = DDPGq.DDPGq(state_dim, action_dim, max_action)
+    elif args.policy_name == "DDPGadv":policy = DDPGadv.DDPGadv(state_dim, action_dim, max_action)
 
     replay_buffer = utils.ReplayBuffer()
 
@@ -131,7 +130,7 @@ if __name__ == "__main__":
                 elif args.policy_name == "softTD3":
                     policy.train(args, replay_buffer, episode_timesteps, args.batch_size, args.discount, args.tau, args.policy_noise, args.noise_clip, args.policy_freq)
                 else:
-                    policy.train(logger, replay_buffer, episode_timesteps, total_timesteps, args.batch_size, args.discount, args.tau, args.use_DR)
+                    policy.train(logger, replay_buffer, episode_timesteps, total_timesteps, args.batch_size, args.discount, args.tau)
 
 
             # Evaluate episode
@@ -185,13 +184,13 @@ if __name__ == "__main__":
     # Final evaluation
     evaluations.append(evaluate_policy(policy))
     training_evaluations.append(episode_reward)
-
     if args.use_logger:
         logger.record_reward(evaluations)
         logger.training_record_reward(training_evaluations)
         logger.save()
         logger.save_2()
         logger.save_critic_loss()  # save the critic loss
+
         if args.save_models: logger.save_policy(policy, file_name)
         #if args.save_models: policy.save(file_name, directory="./pytorch_models_DR{}".format(args.use_DR))
         #np.save("./results/{}_{}".format(file_name, args.use_DR), evaluations)
