@@ -122,7 +122,7 @@ class DDPG(object):
                 target_param.data.copy_(tau * param.data + (1 - tau) * target_param.data)
 
         # record logger
-        logger.record_critic_loss(np.mean(episodic_critic_loss))
+        logger.record_critic_loss(torch.stack(episodic_critic_loss).mean().numpy())
     def save(self, filename, directory):
         torch.save(self.actor.state_dict(), '%s/%s_actor.pth' % (directory, filename))
         torch.save(self.critic.state_dict(), '%s/%s_critic.pth' % (directory, filename))
