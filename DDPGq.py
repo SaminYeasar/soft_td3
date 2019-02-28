@@ -123,7 +123,7 @@ class DDPGq(object):
 
 
 	def train(self, logger, replay_buffer, iterations, total_timesteps, batch_size=64, discount=0.99, tau=0.001):
-
+		episodic_critic_loss = []
 		for it in range(iterations):
 
 			# Sample replay buffer
@@ -178,7 +178,7 @@ class DDPGq(object):
 			# Compute critic loss
 			critic_loss = F.mse_loss(current_Q, target_Q)
 			# record logger
-			logger.record_critic_loss(critic_loss.detach())
+			episodic_critic_loss.append(critic_loss.detach())
 
 			# Optimize the critic
 			self.critic_optimizer.zero_grad()
@@ -200,7 +200,7 @@ class DDPGq(object):
 			for param, target_param in zip(self.actor.parameters(), self.actor_target.parameters()):
 				target_param.data.copy_(tau * param.data + (1 - tau) * target_param.data)
 
-
+		logger.record_critic_loss(np.mean(episodic_critic_loss))
 	def save(self, filename, directory):
 		torch.save(self.actor.state_dict(), '%s/%s_actor.pth' % (directory, filename))
 		torch.save(self.critic.state_dict(), '%s/%s_critic.pth' % (directory, filename))
