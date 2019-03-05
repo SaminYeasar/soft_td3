@@ -200,6 +200,10 @@ class DDPGq(object):
 			for param, target_param in zip(self.actor.parameters(), self.actor_target.parameters()):
 				target_param.data.copy_(tau * param.data + (1 - tau) * target_param.data)
 
+			for param, target_param in zip(self.Q_hat_network.parameters(), self.Q_hat_target_network.parameters()):
+				target_param.data.copy_(tau * param.data + (1 - tau) * target_param.data)
+
+
 		logger.record_critic_loss(torch.stack(episodic_critic_loss).mean().cpu().numpy())
 	def save(self, filename, directory):
 		torch.save(self.actor.state_dict(), '%s/%s_actor.pth' % (directory, filename))
