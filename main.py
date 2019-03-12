@@ -14,6 +14,7 @@ import DDPGq
 from utils import Logger
 import td3q
 import td3adv
+import td3doubleq
 from utils import create_folder
 
 
@@ -40,7 +41,7 @@ def evaluate_policy(policy, eval_episodes=10):
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("--policy_name", default='td3q', help='DDPGq')					# Policy name
+    parser.add_argument("--policy_name", default='td3doubleq', help='DDPGq')					# Policy name
     parser.add_argument("--env_name", default="HalfCheetah-v2")			# OpenAI gym environment name
     parser.add_argument("--seed", default=0, type=int)					# Sets Gym, PyTorch and Numpy seeds
     parser.add_argument("--start_timesteps", default=1e4, type=int)		# How many time steps purely random policy is run for
@@ -105,6 +106,7 @@ if __name__ == "__main__":
     if args.policy_name == "TD3": policy = TD3.TD3(state_dim, action_dim, max_action)
     elif args.policy_name == "td3q": policy = td3q.TD3(state_dim, action_dim, max_action)
     elif args.policy_name == "td3adv":policy = td3adv.TD3(state_dim, action_dim, max_action)
+    elif args.policy_name == "td3doubleq": policy = td3doubleq.TD3(state_dim, action_dim, max_action)
     elif args.policy_name == "softTD3": policy = softTD3.softTD3(state_dim, action_dim, max_action)
     elif args.policy_name == "OurDDPG": policy = OurDDPG.DDPG(state_dim, action_dim, max_action)
     elif args.policy_name == "DDPG": policy = DDPG.DDPG(state_dim, action_dim, max_action)
@@ -133,7 +135,7 @@ if __name__ == "__main__":
                     policy.train(replay_buffer, episode_timesteps, args.batch_size, args.discount, args.tau, args.policy_noise, args.noise_clip, args.policy_freq)
                 elif args.policy_name == "softTD3":
                     policy.train(args, replay_buffer, episode_timesteps, args.batch_size, args.discount, args.tau, args.policy_noise, args.noise_clip, args.policy_freq)
-                elif args.policy_name == "td3q" or args.policy_name == "td3adv":
+                elif args.policy_name == "td3q" or args.policy_name == "td3adv" or args.policy_name == "td3doubleq":
                     policy.train(logger, replay_buffer, episode_timesteps, args.batch_size, args.discount, args.tau, args.policy_noise, args.noise_clip, args.policy_freq)
                 else:
                     policy.train(logger, replay_buffer, episode_timesteps, total_timesteps, args.batch_size, args.discount, args.tau)
