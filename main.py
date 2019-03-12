@@ -12,6 +12,7 @@ import softTD3
 import DDPGadv
 import DDPGq
 from utils import Logger
+import td3_doubly_robust
 from utils import create_folder
 
 
@@ -38,7 +39,7 @@ def evaluate_policy(policy, eval_episodes=10):
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("--policy_name", default="DDPGq")					# Policy name
+    parser.add_argument("--policy_name", default='td3_doubly_robust', help='DDPGq')					# Policy name
     parser.add_argument("--env_name", default="HalfCheetah-v2")			# OpenAI gym environment name
     parser.add_argument("--seed", default=0, type=int)					# Sets Gym, PyTorch and Numpy seeds
     parser.add_argument("--start_timesteps", default=1e4, type=int)		# How many time steps purely random policy is run for
@@ -101,6 +102,7 @@ if __name__ == "__main__":
 
     # Initialize policy
     if args.policy_name == "TD3": policy = TD3.TD3(state_dim, action_dim, max_action)
+    elif args.policy_name == "td3_doubly_robust": policy = td3_doubly_robust.TD3(state_dim, action_dim, max_action)
     elif args.policy_name == "softTD3": policy = softTD3.softTD3(state_dim, action_dim, max_action)
     elif args.policy_name == "OurDDPG": policy = OurDDPG.DDPG(state_dim, action_dim, max_action)
     elif args.policy_name == "DDPG": policy = DDPG.DDPG(state_dim, action_dim, max_action)
@@ -129,6 +131,8 @@ if __name__ == "__main__":
                     policy.train(replay_buffer, episode_timesteps, args.batch_size, args.discount, args.tau, args.policy_noise, args.noise_clip, args.policy_freq)
                 elif args.policy_name == "softTD3":
                     policy.train(args, replay_buffer, episode_timesteps, args.batch_size, args.discount, args.tau, args.policy_noise, args.noise_clip, args.policy_freq)
+                elif args.policy_name == "td3_doubly_robust":
+                    policy.train(logger, replay_buffer, episode_timesteps, args.batch_size, args.discount, args.tau, args.policy_noise, args.noise_clip, args.policy_freq)
                 else:
                     policy.train(logger, replay_buffer, episode_timesteps, total_timesteps, args.batch_size, args.discount, args.tau)
 
