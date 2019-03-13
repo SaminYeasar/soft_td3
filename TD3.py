@@ -86,8 +86,8 @@ class TD3(object):
 		return self.actor(state).cpu().data.numpy().flatten()
 
 
-	def train(self, replay_buffer, iterations, batch_size=100, discount=0.99, tau=0.005, policy_noise=0.2, noise_clip=0.5, policy_freq=2):
-
+	def train(self, logger, replay_buffer, iterations, batch_size=100, discount=0.99, tau=0.005, policy_noise=0.2, noise_clip=0.5, policy_freq=2):
+		episodic_critic_loss = []
 		for it in range(iterations):
 
 			# Sample replay buffer 
@@ -114,6 +114,8 @@ class TD3(object):
 
 			# Compute critic loss
 			critic_loss = F.mse_loss(current_Q1, target_Q) + F.mse_loss(current_Q2, target_Q) 
+			"""Samin: record logger"""
+			episodic_critic_loss.append(critic_loss.detach())
 
 			# Optimize the critic
 			self.critic_optimizer.zero_grad()
@@ -138,7 +140,7 @@ class TD3(object):
 				for param, target_param in zip(self.actor.parameters(), self.actor_target.parameters()):
 					target_param.data.copy_(tau * param.data + (1 - tau) * target_param.data)
 
-
+		logger.record_critic_loss(torch.stack(episodic_critic_loss).mean().cpu().numpy())
 	def save(self, filename, directory):
 		torch.save(self.actor.state_dict(), '%s/%s_actor.pth' % (directory, filename))
 		torch.save(self.critic.state_dict(), '%s/%s_critic.pth' % (directory, filename))
